@@ -1,0 +1,25 @@
+diff --git a/form_mode_control.module b/form_mode_control.module
+index 1f52ab6..ab1904f 100644
+--- a/form_mode_control.module
++++ b/form_mode_control.module
+@@ -80,7 +80,7 @@ function getPermissionByModeAndRole($display_query, $configuration, $context) {
+   $entity_type = $context['entity_type'];
+   $bundle = $context['bundle'];
+   $id = "$entity_type.$bundle.$display_query";
+-  if ($extractConfigPermissionByDisplay[$id] != NULL && \Drupal\Core\Entity\Entity\EntityFormDisplay::load($id)
++  if (isset($extractConfigPermissionByDisplay[$id]) && \Drupal\Core\Entity\Entity\EntityFormDisplay::load($id)
+       ->status() == TRUE
+   ) {
+     return $extractConfigPermissionByDisplay[$id];
+@@ -117,7 +117,10 @@ function controlAccessFormMode($configuration, $mode, $display_name, $storage, $
+    *
+    */
+   $form_mode_id = explode('.',$current_id)[2];
+-  $default_id = explode('.',getTheRightDisplay($configuration, $mode, $id_role, $context))[2];
++  $default_id = '';
++  if (count(explode('.',getTheRightDisplay($configuration, $mode, $id_role, $context))) >= 2) {
++    $default_id = explode('.',getTheRightDisplay($configuration, $mode, $id_role, $context))[2];
++  }
+   if($form_mode_id == "" && $default_id !=  $form_mode_id){
+     $current_id = getTheRightDisplay($configuration, $mode, $id_role, $context);
+   }
