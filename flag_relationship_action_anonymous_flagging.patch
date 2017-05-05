@@ -1,13 +1,12 @@
 diff --git a/src/ActionLink/ActionLinkTypeBase.php b/src/ActionLink/ActionLinkTypeBase.php
-index 2cd9ef2..29f9d8e 100644
+index 2cd9ef2..e33df82 100644
 --- a/src/ActionLink/ActionLinkTypeBase.php
 +++ b/src/ActionLink/ActionLinkTypeBase.php
-@@ -84,7 +84,8 @@ abstract class ActionLinkTypeBase extends PluginBase implements ActionLinkTypePl
+@@ -84,7 +84,7 @@ abstract class ActionLinkTypeBase extends PluginBase implements ActionLinkTypePl
    public function getAsLink(FlagInterface $flag, EntityInterface $entity) {
      $action = $this->getAction($flag, $entity);
      $url = $this->getUrl($action, $flag, $entity);
 -    $url->setOption('query', ['destination' => $this->getDestination()]);
-+    // $url->setOption('query', ['destination' => $this->getDestination()]);
 +    $url->setOption('query', ['destination' => \Drupal::request()->getRequestUri()]);
      $title = $flag->getShortText($action);
  
