@@ -1,0 +1,23 @@
+diff --git a/src/Ui/RulesUiDefinition.php b/src/Ui/RulesUiDefinition.php
+index 2442074..5518ac2 100644
+--- a/src/Ui/RulesUiDefinition.php
++++ b/src/Ui/RulesUiDefinition.php
+@@ -143,4 +143,18 @@ class RulesUiDefinition implements PluginDefinitionInterface {
+     }
+   }
+ 
++  /**
++   * {@inheritdoc}
++   */
++  public function id() {
++    return $this->id;
++  }
++
++  /**
++   * {@inheritdoc}
++   */
++  public function getProvider() {
++    return $this->provider;
++  }
++
+ }
