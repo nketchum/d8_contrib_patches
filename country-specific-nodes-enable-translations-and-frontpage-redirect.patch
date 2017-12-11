@@ -1,0 +1,117 @@
+diff --git a/country_specific_nodes.module b/country_specific_nodes.module
+index ca89812..990d710 100644
+--- a/country_specific_nodes.module
++++ b/country_specific_nodes.module
+@@ -81,8 +81,18 @@ function country_specific_nodes_node_load($nodes) {
+         $inverted_content_types = in_array($node->bundle(), $include_list);
+         $invert_countries = $node->get('field_invert_countries')->getValue();
+         $invert_node = $invert_countries[0]['value'];
++
++        // Get language options.
++        $current_language = \Drupal::languageManager()->getCurrentLanguage()->getId();
++        $default_language = \Drupal::languageManager()->getDefaultLanguage()->getId();
++        $node_translations = $node->getTranslationLanguages();
++
+         // Get countries selected if any.
+-        $filter_countries = $node->get('field_countries_cce')->getValue();
++        if (array_key_exists($current_language, $node_translations)) {
++          $filter_countries = $node->getTranslation($current_language)->get('field_countries_cce')->getValue();
++        } else {
++          $filter_countries = $node->getTranslation($default_language)->get('field_countries_cce')->getValue();
++        }
+ 
+         if (!empty($filter_countries)) {
+           foreach ($filter_countries as $ccode) {
+diff --git a/src/EventSubscriber/CountrySpecificNodesSubscriber.php b/src/EventSubscriber/CountrySpecificNodesSubscriber.php
+index 438f034..22cb676 100644
+--- a/src/EventSubscriber/CountrySpecificNodesSubscriber.php
++++ b/src/EventSubscriber/CountrySpecificNodesSubscriber.php
+@@ -9,6 +9,9 @@ namespace Drupal\country_specific_nodes\EventSubscriber;
+ 
+ use Symfony\Component\HttpKernel\KernelEvents;
+ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
++use Symfony\Component\HttpFoundation\RedirectResponse;
++use Drupal\Core\Cache\Cache;
++use Drupal\Core\Url;
+ 
+ /**
+  * Provides a CountrySpecificNodesSubscriber.
+@@ -28,8 +31,20 @@ class CountrySpecificNodesSubscriber implements EventSubscriberInterface {
+       // Get user IP address.
+       $ip = \Drupal::request()->getClientIp();
+ 
+-      // Get country code based on user IP address.
+-      $country_code = ip2country_get_country($ip);
++      // Get country code based on user IP address or debug settings.
++      $ip2country_config = \Drupal::config('ip2country.settings');
++      if (\Drupal::currentUser()->hasPermission('administer ip2country') && $ip2country_config->get('debug')) {
++        $type = $ip2country_config->get('test_type');
++        if ($type == 0) {  // Debug Country entered.
++          $country_code = $ip2country_config->get('test_country');
++        }
++        else {  // Debug IP entered.
++          $ip = $ip2country_config->get('test_ip_address');
++          $country_code = ip2country_get_country($ip);
++        }
++      } else {
++        $country_code = ip2country_get_country($ip);
++      }
+ 
+       // Set country code, if not set default.
+       if (empty($country_code)) {
+@@ -40,12 +55,54 @@ class CountrySpecificNodesSubscriber implements EventSubscriberInterface {
+     }
+   }
+ 
++  public function checkForRedirection() {
++    // Define a default language for each country.
++    $default_langs = array(
++      'BR' => 'pt-br',
++      'CH' => 'zh-hans',
++      'DE' => 'de',
++      'FR' => 'fr',
++      'GB' => 'en-gb',
++      'IT' => 'it',
++      'NL' => 'nl',
++      'US' => 'en',
++    );
++
++    // Getting a little context.
++    $country_code = $_SESSION['ip_country_code'];
++    $current_language = \Drupal::languageManager()->getCurrentLanguage()->getId();
++    $current_path = \Drupal::service('path.current')->getPath();
++
++    // Make sure the main menu updates upon switching countries.
++    $tags = array('config:system.menu.main');
++    Cache::invalidateTags($tags);
++
++    // Redirect/reload the front page if:
++    // 1. this is the first request of this session
++    // 2. AND we're loading the front page
++    // 3. AND the current country's default language is not the sitewide default language.
++    if (
++      !array_key_exists('ip_country_code_check_redirect', $_SESSION) &&
++      $current_path == '/node' &&
++      $current_language != $default_langs[$country_code]
++    ) {
++      // Redirect to the front page with associated country's default language.
++      $language = \Drupal::languageManager()->getLanguage($default_langs[$country_code]);
++      $url = Url::fromRoute('<front>', [], ['language' => $language]);
++      $response = new RedirectResponse($url->toString());
++      $response->send();
++    }
++
++    // Mark the session as having already checked for front page redirection.
++    $_SESSION['ip_country_code_check_redirect'] = TRUE;
++  }
++
+   /**
+    * {@inheritdoc}
+    */
+   public static function getSubscribedEvents() {
+     $events[KernelEvents::REQUEST][] = array('setUserSessionIp', 20);
++    $events[KernelEvents::REQUEST][] = array('checkForRedirection', 1);
+     return $events;
+   }
+-
+ }
