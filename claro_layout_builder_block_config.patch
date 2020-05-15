@@ -1,0 +1,14 @@
+diff --git a/claro.theme b/claro.theme
+index 5042173..95667f4 100644
+--- a/claro.theme
++++ b/claro.theme
+@@ -177,7 +177,8 @@ function claro_preprocess_entity_add_list(&$variables) {
+  * Disables contextual links for all blocks.
+  */
+ function claro_preprocess_block(&$variables) {
+-  if (isset($variables['title_suffix']['contextual_links'])) {
++  if (isset($variables['title_suffix']['contextual_links'])
++    && !isset($variables['elements']['#contextual_links']['layout_builder_block'])) {
+     unset($variables['title_suffix']['contextual_links']);
+     unset($variables['elements']['#contextual_links']);
+ 
