@@ -1,0 +1,148 @@
+diff --git a/src/Commands/MigrateToolsCommands.php b/src/Commands/MigrateToolsCommands.php
+index f07e9be..4bf8690 100644
+--- a/src/Commands/MigrateToolsCommands.php
++++ b/src/Commands/MigrateToolsCommands.php
+@@ -143,77 +143,80 @@ class MigrateToolsCommands extends DrushCommands {
+       $group_name = !empty($group) ? "{$group->label()} ({$group->id()})" : $group_id;
+ 
+       foreach ($migration_list as $migration_id => $migration) {
+-        if ($names_only) {
+-          $table[] = [
+-            'group' => dt('Group: @name', ['@name' => $group_name]),
+-            'id' => $migration_id,
+-          ];
+-        }
+-        else {
+-          try {
+-            $map = $migration->getIdMap();
+-            $imported = $map->importedCount();
+-            $source_plugin = $migration->getSourcePlugin();
+-          }
+-          catch (\Exception $e) {
+-            $error = dt(
+-              'Failure retrieving information on @migration: @message',
+-              ['@migration' => $migration_id, '@message' => $e->getMessage()]
+-            );
+-            $this->logger()->error($error);
+-            $errors[] = $error;
+-            continue;
++        // Strip out D6 junk.
++        if (substr($migration_id, 0, 3) != 'd6_') {
++          if ($names_only) {
++            $table[] = [
++              'group' => dt('Group: @name', ['@name' => $group_name]),
++              'id' => $migration_id,
++            ];
+           }
++          else {
++            try {
++              $map = $migration->getIdMap();
++              $imported = $map->importedCount();
++              $source_plugin = $migration->getSourcePlugin();
++            }
++            catch (\Exception $e) {
++              $error = dt(
++                'Failure retrieving information on @migration: @message',
++                ['@migration' => $migration_id, '@message' => $e->getMessage()]
++              );
++              $this->logger()->error($error);
++              $errors[] = $error;
++              continue;
++            }
+ 
+-          try {
+-            $source_rows = $source_plugin->count();
+-            // -1 indicates uncountable sources.
+-            if ($source_rows == -1) {
++            try {
++              $source_rows = $source_plugin->count();
++              // -1 indicates uncountable sources.
++              if ($source_rows == -1) {
++                $source_rows = dt('N/A');
++                $unprocessed = dt('N/A');
++              }
++              else {
++                $unprocessed = $source_rows - $map->processedCount();
++              }
++            }
++            catch (\Exception $e) {
++              $this->logger()->error(
++                dt(
++                  'Could not retrieve source count from @migration: @message',
++                  ['@migration' => $migration_id, '@message' => $e->getMessage()]
++                )
++              );
+               $source_rows = dt('N/A');
+               $unprocessed = dt('N/A');
+             }
+-            else {
+-              $unprocessed = $source_rows - $map->processedCount();
+-            }
+-          }
+-          catch (\Exception $e) {
+-            $this->logger()->error(
+-              dt(
+-                'Could not retrieve source count from @migration: @message',
+-                ['@migration' => $migration_id, '@message' => $e->getMessage()]
+-              )
+-            );
+-            $source_rows = dt('N/A');
+-            $unprocessed = dt('N/A');
+-          }
+ 
+-          $status = $migration->getStatusLabel();
+-          $migrate_last_imported_store = $this->keyValue->get(
+-            'migrate_last_imported'
+-          );
+-          $last_imported = $migrate_last_imported_store->get(
+-            $migration->id(),
+-            FALSE
+-          );
+-          if ($last_imported) {
+-            $last_imported = $this->dateFormatter->format(
+-              $last_imported / 1000,
+-              'custom',
+-              'Y-m-d H:i:s'
++            $status = $migration->getStatusLabel();
++            $migrate_last_imported_store = $this->keyValue->get(
++              'migrate_last_imported'
+             );
++            $last_imported = $migrate_last_imported_store->get(
++              $migration->id(),
++              FALSE
++            );
++            if ($last_imported) {
++              $last_imported = $this->dateFormatter->format(
++                $last_imported / 1000,
++                'custom',
++                'Y-m-d H:i:s'
++              );
++            }
++            else {
++              $last_imported = '';
++            }
++            $table[] = [
++              'group' => $group_name,
++              'id' => $migration_id,
++              'status' => $status,
++              'total' => $source_rows,
++              'imported' => $imported,
++              'unprocessed' => $unprocessed,
++              'last_imported' => $last_imported,
++            ];
+           }
+-          else {
+-            $last_imported = '';
+-          }
+-          $table[] = [
+-            'group' => $group_name,
+-            'id' => $migration_id,
+-            'status' => $status,
+-            'total' => $source_rows,
+-            'imported' => $imported,
+-            'unprocessed' => $unprocessed,
+-            'last_imported' => $last_imported,
+-          ];
+         }
+       }
+ 
