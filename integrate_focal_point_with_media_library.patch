@@ -1,0 +1,13 @@
+diff --git a/src/Plugin/Field/FieldWidget/FocalPointImageWidget.php b/src/Plugin/Field/FieldWidget/FocalPointImageWidget.php
+index c86adca..e07f657 100755
+--- a/src/Plugin/Field/FieldWidget/FocalPointImageWidget.php
++++ b/src/Plugin/Field/FieldWidget/FocalPointImageWidget.php
+@@ -155,7 +155,7 @@ class FocalPointImageWidget extends ImageWidget {
+       $preview['#weight'] = isset($element['preview']['#weight']) ? $element['preview']['#weight'] : 0;
+       unset($preview['thumbnail']['#weight']);
+ 
+-      $element['preview'] = $preview;
++      $element['preview_link'] = $preview;
+     }
+ 
+     // Add the focal point field.
